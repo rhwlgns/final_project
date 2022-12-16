@@ -1,0 +1,259 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.kh.erp.ad.emp.EmpDAO">
+
+	<insert id="adUserInfoReg"
+		parameterType="com.kh.erp.ad.emp.UserInfoDTO">
+		insert into MA_USER(
+		NO_EMP,
+		USER_ID,
+		USER_PWD
+		)
+		values(
+		#{emp_no}
+		,#{emp_id}
+		,#{emp_pwd}
+		)
+
+	</insert>
+
+	<select id="checkId" parameterType="String" resultType="int">
+
+		select
+		count(USER_ID) from MA_USER where USER_ID=#{emp_id}
+
+	</select>
+	
+	<select id="checkNo" parameterType="String" resultType="int">
+
+		select
+		count(NO_EMP) from MA_USER where NO_EMP=#{emp_no}
+
+	</select>
+
+	<insert id="adEmpRegForm"
+		parameterType="com.kh.erp.ad.emp.RegDTO">
+		insert into MA_EMP(
+		NO_EMP
+		,NM_EMP
+		,ENTER_DATE
+		,BIRTH_DATE
+		,CD_DEPT
+		,CD_JIK
+		)
+		values(
+		#{emp_no}
+		,#{emp_name}
+		,to_date(#{emp_hire},'YYYY-MM-DD')
+		,to_date(#{emp_birth},'YYYY-MM-DD')
+		,(select CD_DEPT from MA_DEPT where
+		NM_DEPT=#{emp_part})
+		,(select CD_JIK from MA_JIKUP where
+		NM_JIK=#{emp_jikup})
+		<!-- #{NO_EMP} ,#{NM_EMP} ,to_date(#{emp_hire},'YYYY-MM-DD') ,to_date(#{emp_birth},'YYYY-MM-DD') 
+			,(select CD_DEPT from MA_DEPT where NM_DEPT=#{emp_part}) ,(select CD_JIK 
+			from MA_JIKUP where NM_JIK=#{emp_jikup}) -->
+		)
+
+	</insert>
+
+	<insert id="adEmpRegPrivate"
+		parameterType="com.kh.erp.ad.emp.RegDTO">
+		insert into ma_emp_private(
+		NO_EMP
+		,EMAIL
+		,NM_ADDR
+		,NM_ADDR1
+		,NM_ADDR2
+		,PHONE
+		,NO_RES
+		)
+		values(
+		#{emp_no}
+		,#{emp_email}
+		,#{emp_loc}||#{emp_detailloc}
+		,#{emp_loc}
+		,#{emp_detailloc}
+		,#{emp_phone}
+		,#{emp_jumin}
+
+		)
+
+	</insert>
+
+
+	<select id="searchForm"
+		parameterType="com.kh.erp.ad.emp.EmpListDTO"
+		resultType="com.kh.erp.ad.emp.EmpListDTO">
+
+		select *
+		from MA_EMP
+		where 1=1
+		<if test="(place!=null and place.length()>0)">
+
+		</if>
+
+	</select>
+
+
+
+	<select id="getEmpList" resultType="hashmap">
+
+		select
+		e.nm_emp as "nm_emp",
+		e.no_emp as "no_emp",
+		to_char(e.enter_date,'YYYY"년 "MM"월 "DD"일"') as "enter_date",
+		to_char(e.retire_date,'YYYY"년 "MM"월 "DD"일"') as "retire_date",
+		c.nm_cd_emp as "nm_cd_emp",
+		d.nm_dept as "nm_dept",
+		j.nm_jik as "nm_jik",
+		p.email as "email",
+		SUBSTR(p.phone,0,3)||'-'||SUBSTR(p.phone,4,4)||'-'||SUBSTR(p.phone,8,4) as "phone"
+		from
+		ma_emp e, ma_emp_private p, ma_dept d, ma_jikup j, ma_code_emp c
+		where
+		e.no_emp=p.no_emp 
+		and e.cd_dept=d.cd_dept 
+		and e.cd_jik=j.cd_jik 
+		and e.cd_emp=c.cd_emp 
+		and e.nm_emp != 'system'
+		<if test="keyword != null and keyword.length()>0">
+			and(
+		
+			e.nm_emp like '%${keyword}%'
+			or
+			e.no_emp like '%${keyword}%'
+			or
+			p.email like '%${keyword}%'
+			or
+			p.phone like '%${keyword}%'
+			)
+		</if>
+		<if test="part!=null and part.length()>0">
+			and(
+
+			d.nm_dept=#{part}
+
+			)
+		</if>
+		<if test="proof!=null and proof.length()>0">
+			and(
+
+			c.nm_cd_emp=#{proof}
+
+			)
+		</if>
+		<if test="position!=null and position.length()>0">
+			and(
+
+			j.nm_jik=#{position}
+			
+			)
+		</if>
+		order by e.no_emp
+
+	</select>
+	
+	<select id="getEmpListCorr" parameterType="String" resultType="com.kh.erp.ad.emp.RegDTO">
+  		select  			
+            e.no_emp as  "emp_no",
+            e.nm_emp  as  "emp_name",  
+            to_char(e.birth_date,'YYYY"년 "MM"월 "DD"일"') as "emp_birth",
+            SUBSTR(p.no_res,0,6)||'-'||SUBSTR(p.no_res,7,1)||'******' as "emp_jumin",
+            d.nm_dept as "emp_part",       
+            j.nm_jik as "emp_jikup",       
+            p.email as "emp_email",
+            p.phone as "emp_phone",     
+            p.nm_addr1 as "emp_loc",  
+            p.nm_addr2 as "emp_detailloc" ,
+            to_char(e.enter_date,'YYYY"년 "MM"월 "DD"일"') as "emp_hire",
+    		to_char(e.retire_date,'YYYY"년 "MM"월 "DD"일"') as "emp_retire"
+        from
+            ma_emp e, ma_emp_private p, ma_dept d, ma_jikup j, ma_code_emp c     
+        where
+            e.no_emp=p.no_emp  and e.cd_dept=d.cd_dept and e.cd_jik=j.cd_jik and e.cd_emp=c.cd_emp and e.no_emp=#{no_emp}
+	</select>
+	
+	<select id="getPartList" resultType="hashmap">
+
+		select NM_DEPT
+		from MA_DEPT
+		order by CD_DEPT
+
+	</select>
+	
+	<select id="getProofList" resultType="hashmap">
+
+		select NM_CD_EMP
+		from MA_CODE_EMP
+		where CD_EMP != 000
+		order by CD_EMP
+
+	</select>
+	
+	<select id="getJikupList" resultType="hashmap">
+
+		select NM_JIK
+		from MA_JIKUP
+		where NM_JIK != '관리자'
+		order by CD_JIK
+	</select>
+
+	<update id = "adEmpListUp1" parameterType="com.kh.erp.ad.emp.RegDTO">
+		update ma_emp
+		set
+    	NM_EMP = #{emp_name}, 
+    	RETIRE_DATE = to_date(#{emp_retire},'YYYY-MM-DD'),
+    	CD_DEPT = (select CD_DEPT from MA_DEPT where NM_DEPT=#{emp_part}),
+    	CD_JIK = (select CD_JIK from MA_JIKUP where NM_JIK=#{emp_jikup})
+		where no_emp = #{emp_no}
+	</update>
+
+	<update id = "adEmpListUp2" parameterType="com.kh.erp.ad.emp.RegDTO">
+		update ma_emp_private
+		set  
+        EMAIL = #{emp_email}
+        ,NM_ADDR  = #{emp_loc}||#{emp_detailloc}
+        ,NM_ADDR1 = #{emp_loc} 
+        ,NM_ADDR2 = #{emp_detailloc} 
+        ,PHONE = '${emp_phone}'  
+        where no_emp = #{emp_no}      
+	</update>
+
+	<delete id="adEmpListDel1">
+		delete from MA_EMP_PRIVATE
+		where no_emp = #{emp_no}
+	</delete>
+	
+	
+	<delete id="adEmpListDel2">
+		delete from MA_USER
+		where no_emp = #{emp_no}
+	</delete>
+	
+	
+
+	<delete id="adEmpListDel3">
+		delete from MA_EMP
+		where no_emp = #{emp_no}
+	</delete>
+
+	<select id="getUserInfo" parameterType="String" resultType="com.kh.erp.ad.emp.RegDTO">
+  		select  	
+  			e.nm_emp  as  "emp_name", 		
+            e.no_emp as  "emp_no",
+            to_char(e.birth_date,'YYYY"년 "MM"월 "DD"일"') as "emp_birth",
+            to_char(e.enter_date,'YYYY"년 "MM"월 "DD"일"') as "emp_hire",
+            d.nm_dept as "emp_part",       
+            j.nm_jik as "emp_jikup",       
+            p.email as "emp_email",
+            p.phone as "emp_phone",     
+			p.nm_addr1||' '||p.nm_addr2 as "emp_loc"        
+        from
+            ma_emp e, ma_emp_private p, ma_dept d, ma_jikup j
+        where
+            e.no_emp=p.no_emp  and e.cd_dept=d.cd_dept and e.cd_jik=j.cd_jik and e.no_emp=#{no_emp}
+	</select>
+
+</mapper>

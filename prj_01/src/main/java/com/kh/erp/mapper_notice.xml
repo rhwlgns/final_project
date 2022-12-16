@@ -1,0 +1,654 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!-- mapper 태그 선언 -->
+<!-- mapper 태그 안의 namespace 값은 -->
+<!--[원하는 인터페이스 저장 패키지 경로]와 동일해야 한다. -->
+<mapper namespace="com.kh.erp.ad.notice.BoardDAO">
+
+	<!-- 게시판 글 목록을 관련 쿼리에 사용할 -->
+	<!--  where절을 설정-->
+	<sql id="boardWhere">
+		1=1
+		
+		<if test="(keyword1!=null and keyword1.length()>0) or (keyword2!=null and keyword2.length()>0)">
+			and
+			(
+		</if>
+		<if test="keyword1!=null and keyword1.length()>0" >
+			<include refid="keyword1"></include>
+		</if>
+		<if test="(keyword1!=null and keyword1.length()>0) and (keyword2!=null and keyword2.length()>0)" >
+			${orAnd}
+		</if>
+		<if test="keyword2!=null and keyword2.length()>0" >
+			<include refid="keyword2"></include>
+		</if>
+		<if test="(keyword1!=null and keyword1.length()>0) or (keyword2!=null and keyword2.length()>0)">
+			)
+		</if>
+		
+		<!-- MyBatis 반복문을 사용해 SQL 구문에 참여하는 -->
+		<!-- BoardSearchDTO 객체의 속성변수 중 List<String> 안의 -->
+		<!-- date로 저장된 ArrayList 객체의 데이터를 꺼내-->
+		<!-- 조건식을 꺼내 조건식을 만들기 -->
+		<if test="date!=null">
+			<foreach collection="date" item="date" open="and (" close=")" separator=" or ">
+				<!-- 해당 쿼리문에서 ${date}의 date는 item="date"의 date -->
+				to_char(sysdate ${date}, 'YYYYMMDD') = to_char(reg_date, 'YYYYMMDD')
+			</foreach>
+		</if>
+		<if test="min_year_month!=null and min_year_month.length()>0">
+			and
+			reg_date&gt;=to_date(#{min_year_month}, 'YYYY-MM-DD')
+		</if>
+		<if test="max_year_month!=null and max_year_month.length()>0">
+			and
+			reg_date&lt;=to_date(#{max_year_month}, 'YYYY-MM-DD')
+		</if>
+		
+
+		<!-- 
+		MyBatis 반복문 형식
+		
+		collection="ArrayList 객체 또는 배열 객체의 메모리 위치 주소 값이 저장된 DTO 객체의 속성변수명"
+		item="반복문이 실행될 때 마다 ArrayList 객체 또는 배열 안의 데이터를 순서대로 꺼내 저장할 지역변수명"
+		open="반복문이 1회 이상 실행될 경우 반복문 실행 전 출력할 문자열"
+		close="반복문이 1회 이상 실행될 경우 반복문 완료 후 출력할 문자열"
+		separator="반복문이 2회 이상 실행될 경우 반복문 사이에 출력할 문자열"
+		index="반복문이 실행될 때 마다 반복문 안에서 사용할 일련 인덱스 번호가 저장되는 지역변수명"
+		
+		<주의> item="xxx"일 경우
+		#{xxx}는 ''가 붙고 ${xxx}는 ''가 붙지 않는다.
+		xxx에서 들어오는 데이터가 문자열이라면 ${xxx}를 사용하여야 한다.
+		#{xxx}를 사용하면 결론적으로 '"데이터"'와 같은 형식이 되기 때문에 사용하면 안된다.
+		 -->
+		
+		<!-- 
+		<if test="keyword1!=null and keyword1.length()>0 and keyword2!=null and keyword2.length()>0">
+			and
+			<include refid="keyword1"></include>
+			${orAnd}
+			<include refid="keyword2"></include>
+		</if>
+		<if test="keyword1!=null and keyword1.length()>0 and (keyword2!=null or keyword2.length()==0)">
+			and
+			<include refid="keyword1"></include>
+		</if>
+		<if test="(keyword1!=null or keyword1.length()==0) and keyword2!=null and keyword2.length()>0">
+			and
+			<include refid="keyword2"></include>
+		</if>
+		-->
+		<!-- 
+		방법1
+		<foreach collection="date" item="date" open="and (" close=")" separator=" or ">
+		
+			// 해당 if문에서 date는 item="date"의 date
+			<if test="date.equals('오늘')">
+				to_char(sysdate, 'YYYYMMDD') = to_char(reg_date, 'YYYYMMDD')
+			</if>
+			
+			// 해당 if문에서 date는 item="date"의 date
+			<if test="date.equals('어제')">
+				to_char(sysdate - 1, 'YYYYMMDD') = to_char(reg_date, 'YYYYMMDD')
+			</if>
+			
+			// 해당 if문에서 date는 item="date"의 date
+			<if test="date.equals('그제')">
+				to_char(sysdate - 2, 'YYYYMMDD') = to_char(reg_date, 'YYYYMMDD')
+			</if>
+		</foreach>
+		
+		방법2
+		<foreach collection="date" item="date" open="and (" close=")" separator=" or ">
+			to_char(sysdate
+			
+				// 해당 if문에서 date는 item="date"의 date
+				<if test="date.equals('오늘')"></if>
+				
+				// 해당 if문에서 date는 item="date"의 date
+				<if test="date.equals('어제')"> - 1 </if>
+				
+				// 해당 if문에서 date는 item="date"의 date
+				<if test="date.equals('그제')"> - 2 </if>
+			, 'YYYYMMDD') = to_char(reg_date, 'YYYYMMDD')
+		</foreach>
+		 -->
+		 <!-- 
+		 <if test="(min_year != null and min_year.length() > 0) and (min_month != null and min_month.length() > 0)">
+			and
+			to_char(reg_date, 'YYYYMM') &gt;= #{min_year} || #{min_month}
+			// reg_date &gt;= to_date(#{min_year} || #{min_month} || '01', 'yyyymmdd')
+		</if>
+		<if test="(max_year != null and max_year.length() > 0) and (max_month != null and max_month.length() > 0)">
+			and
+			
+			to_char(reg_date, 'YYYYMM') &lt;= #{max_year} || #{max_month}
+			// reg_date &lt;= to_date(#{max_year}||#{max_month}||last_day(to_date(#{max_year}||#{max_month}||'01', 'yyyymmdd')), 'yyyymmdd')
+		</if>
+		  -->
+	</sql>
+	<sql id="keyword1">
+		(
+			upper(subject) like upper('%${keyword1}%')
+			or
+			upper(content) like upper('%${keyword1}%')
+		)
+	</sql>
+	<sql id="keyword2">
+		(
+			upper(subject) like upper('%${keyword2}%')
+			or
+			upper(content) like upper('%${keyword2}%')
+		)
+	</sql>
+
+	<!-- 게시판을 검색하는 -->
+	<!-- select 구문을 내포한 <select> 태그 선언 -->
+	<select id="getBoardList" parameterType="com.kh.erp.ad.notice.BoardSearchDTO" resultType="java.util.HashMap" >
+	<!-- select 태그 안의 속성 -->
+	<!-- id = "namespace 값 마지막의 인터페이스 내부의 메소드명 중 하나" -->
+	<!-- parameterType = "SQL 구문에 참여하는 외부 데이터의 타입" -->
+		<!-- 외부 데이터의 타입이 HashMap일 경우 "java.util.HashMap" 또는 "hashmap"을 사용한다. -->
+		<!-- SQL에 참여하는 외부 데이터가 없을 경우 생략 가능 -->
+	<!-- resultType = "SQL 구문의 결과 값을 저장할 수 있는 자바 자료형" -->
+		<!-- SQL 결과값이 n행m열일 경우 -->
+		<!-- 각 행이 저장되는 자바 자료형을 설정해야 한다. -->
+		<!-- <주의> 모든 행이 저장되는 자바 자료형을 설정하면 안된다. -->
+			<!-- 1행m열, n행m열 : "java.util.HashMap" 또는 "DTO 객체" -->
+			<!-- 1행1열, n행1열 : String 또는 int 또는 double -->
+			
+	<!-- select 태그 특징 -->
+	<!-- resultType이 "java.util.HashMap" : Alias가 HashMap의 키 값 -->
+	<!-- resultType이 "com.kh.erp.BoardDTO" : Alias가 BoardDTO 객체의 속성변수명 -->
+		
+		select * from 
+			(select rownum RNUM, zxcvb.* from(
+				select 
+					b_no || ''							as "b_no"
+					, subject							as "subject"
+					, readcount || ''					as "readcount"
+					, to_char(reg_date, 'YYYY-MM-DD')	as "reg_date"
+				from 
+					ma_board
+				where
+					<!-- <sql id="boardWhere"> 태그의 SQL 구문 삽입 -->
+					<include refid="boardWhere"></include>
+					<!-- 
+					1=1
+					<if test='keyword1!=null and keyword1.length()>0'>
+					and
+					(
+						upper(subject) like upper('%${keyword1}%')
+						or
+						upper(writer) like upper('%${keyword1}%')
+						or
+						upper(content) like upper('%${keyword1}%')
+					)
+					</if>
+					 -->
+				<if test="sort==null or sort.length()==0">
+					order by
+					group_no desc, print_no asc, b_no desc
+				</if>
+				<if test="sort!=null and sort.length()>0">
+					order by
+					${sort}
+				</if>
+
+
+			<![CDATA[
+				) zxcvb) where ${begin_rowNo}<=RNUM and RNUM<=${end_rowNo}
+			]]>
+			<!-- 
+				<![CDATA[
+					) zxcvb) where #{begin_rowNo}<=RNUM and RNUM<=#{end_rowNo}
+				]]>
+			 --> 
+			
+			<!-- 
+				하단 쿼리는 모두 동일
+				
+				) zxcvb) where RNUM&gt;=1 and RNUM&lt;=10
+				
+				<![CDATA[
+					) zxcvb) where RNUM>=1 and RNUM<=10
+				]]>
+				
+				<![CDATA[
+					) zxcvb) where 1<=RNUM and RNUM<=10
+				]]>
+				
+				) zxcvb) where 1&lt;=1RNUM and RNUM&lt;=10
+				
+				<![CDATA[
+					) zxcvb) where RNUM>=1 and 10>=RNUM
+				]]>
+				
+				) zxcvb) where RNUM&gt;=1 and 10&gt;=RNUM
+			 -->
+		
+	</select>
+
+
+	<!-- [검색한 게시판 목록]의 총 개수를 리턴하는 -->
+	<!-- select 구문을 내포한 <select> 태그 선언 -->
+	<select id="getBoardListTotCnt" parameterType="com.kh.erp.ad.notice.BoardSearchDTO" resultType="int">
+	<!-- select 태그 안의 속성 -->
+	<!-- id = "namespace 값 마지막의 인터페이스 내부의 메소드명 중 하나" -->
+	<!-- parameterType = "SQL 구문에 참여하는 외부 데이터의 타입" -->
+	<!-- resultType = "SQL 구문의 결과 값을 저장할 수 있는 자바 자료형" -->
+	
+		select 
+			count(*) 
+		from 
+			ma_board 
+		where
+			<!-- <sql id="boardWhere"> 태그의 SQL 구문 삽입 -->
+			<include refid="boardWhere"></include>
+			<!-- 
+				1=1
+				<if test='keyword1!=null and keyword1.length()>0'>
+				and
+				(
+					upper(subject) like upper('%${keyword1}%')
+					or
+					upper(writer) like upper('%${keyword1}%')
+					or
+					upper(content) like upper('%${keyword1}%')
+				)
+				</if>
+			 -->
+	</select>
+	
+	<!-- [게시판 목록]의 총 개수를 리턴하는 -->
+	<!-- select 구문을 내포한 <select> 태그 선언 -->
+	<select id="getBoardListTotAllCnt" parameterType="com.kh.erp.ad.notice.BoardSearchDTO" resultType="int">
+	<!-- select 태그 안의 속성 -->
+	<!-- id = "namespace 값 마지막의 인터페이스 내부의 메소드명 중 하나" -->
+	<!-- parameterType = "SQL 구문에 참여하는 외부 데이터의 타입" -->
+	<!-- resultType = "SQL 구문의 결과 값을 저장할 수 있는 자바 자료형" -->
+		select 
+			count(*) 
+		from 
+			ma_board
+	</select>
+
+
+	<!-- 
+	<insert id="insertBoard" parameterType="com.kh.erp.BoardDTO">
+
+		insert into board(
+			b_no
+			, subject
+			, writer
+			, readcount
+			, content
+			, pwd
+			, email
+			, group_no
+			, print_no
+			, print_level 
+		)
+		values(
+			(select nvl(max(b_no), 0) + 1 from board)
+			, #{subject}
+			, #{writer}
+			, 0
+			, #{content}
+			, #{pwd}
+			, #{email}
+			, (select nvl(max(b_no), 0) + 1 from board)
+			, 0
+			, 0
+		)
+	</insert>
+	-->
+
+	<!-- 게시판을 입력하는 -->
+	<!-- insert 구문을 내포한 <insert> 태그 선언 -->
+	<insert id="insertBoard" parameterType="com.kh.erp.ad.notice.BoardDTO">
+	insert into ma_board(
+	            b_no
+	            , subject
+	            , readcount
+	            , content
+	            , group_no
+	            , print_no
+	        )
+	        values(
+	            (select nvl(max(b_no), 0) + 1 from ma_board)
+	            , #{subject}
+	            , 0
+	            , #{content}
+				, (select nvl(max(b_no), 0) + 1 from ma_board)
+	            , 0
+	        )
+	</insert>
+	
+	<!-- 게시판을 수정하는 -->
+	<!-- update 구문을 내포한 <update> 태그 선언 -->
+	<update id="updatePrintNoCnt" parameterType="com.kh.erp.ad.notice.BoardDTO">
+	
+		update
+			ma_board set print_no = print_no + 1 
+		where 
+			group_no=(select group_no from ma_board where b_no=${b_no}) 
+		and 
+			print_no>(select print_no from ma_board where b_no=${b_no})
+		
+	</update>
+	
+	
+	<!-- 게시판을 수정하는 -->
+	<!-- update 구문을 내포한 <update> 태그 선언 -->
+	<insert id="updateReadcount" parameterType="int">
+		update ma_board set readcount = readcount + 1 where b_no=${b_no}
+	</insert>
+	
+	
+	<!-- 게시판을 검색하는 -->
+	<!-- select 구문을 내포한 <select> 태그 선언 -->
+	<select id="getBoard" parameterType="int" resultType="com.kh.erp.ad.notice.BoardDTO">
+	<!-- select 태그 안의 속성 -->
+	<!-- id = "namespace 값 마지막의 인터페이스 내부의 메소드명 중 하나" -->
+	<!-- parameterType = "SQL 구문에 참여하는 외부 데이터의 타입" -->
+		<!-- 외부 데이터의 타입이 HashMap일 경우 "java.util.HashMap" 또는 "hashmap"을 사용한다. -->
+		<!-- SQL에 참여하는 외부 데이터가 없을 경우 생략 가능 -->
+	<!-- resultType = "SQL 구문의 결과 값을 저장할 수 있는 자바 자료형" -->
+		<!-- SQL 결과값이 n행m열일 경우 -->
+		<!-- 각 행이 저장되는 자바 자료형을 설정해야 한다. -->
+		<!-- <주의> 모든 행이 저장되는 자바 자료형을 설정하면 안된다. -->
+			<!-- 1행m열, n행m열 : "java.util.HashMap" 또는 "DTO 객체" -->
+			<!-- 1행1열, n행1열 : String 또는 int 또는 double -->
+			
+	<!-- select 태그 특징 -->
+	<!-- resultType이 "java.util.HashMap" : Alias가 HashMap의 키 값 -->
+	<!-- resultType이 "com.kh.erp.BoardDTO" : Alias가 BoardDTO 객체의 속성변수명 -->
+	
+		select					
+			b_no			as "b_no"
+			, subject		as "subject"
+			, to_char(reg_date, 'YYYY-MM-DD')		as "reg_date"
+			, readcount		as "readcount"
+			, content		as "content"
+			, group_no		as "group_no"
+			, print_no		as "print_no"
+		from 
+			ma_board
+
+		where
+			b_no=#{b_no}
+		
+	</select>
+	
+	<!-- 수정할 게시판의 존재 개수를 리턴하는 -->
+	<!-- select 구문을 내포한 <select> 태그 선언 -->
+	<select id="getBoardCnt" parameterType="int" resultType="int">
+	<!-- select 태그 안의 속성 -->
+	<!-- id = "namespace 값 마지막의 인터페이스 내부의 메소드명 중 하나" -->
+	<!-- parameterType = "SQL 구문에 참여하는 외부 데이터의 타입" -->
+	<!-- resultType = "SQL 구문의 결과 값을 저장할 수 있는 자바 자료형" -->
+	
+		select count(*) from ma_board where b_no=#{b_no}
+		
+	</select>
+	
+	<!-- 수정할 게시판의 비밀번호 개수를 리턴하는 -->
+	<!-- select 구문을 내포한 <select> 태그 선언 -->
+	<select id="getBoardPwdCnt" parameterType="com.kh.erp.ad.notice.BoardDTO" resultType="int">
+	<!-- select 태그 안의 속성 -->
+	<!-- id = "namespace 값 마지막의 인터페이스 내부의 메소드명 중 하나" -->
+	<!-- parameterType = "SQL 구문에 참여하는 외부 데이터의 타입" -->
+	<!-- resultType = "SQL 구문의 결과 값을 저장할 수 있는 자바 자료형" -->
+	
+		select count(*) from ma_board where b_no=#{b_no}
+		
+	</select>
+	
+	<!-- 게시판을 수정하는 -->
+	<!-- update 구문을 내포한 <update> 태그 선언 -->
+	<update id="updateBoard" parameterType="com.kh.erp.ad.notice.BoardDTO">
+	
+		update
+			ma_board
+		set 
+			subject = #{subject}
+			, content = #{content}
+		<!-- where -->
+		<!-- where 구문 -->
+		where
+			b_no=#{b_no}
+		
+	</update>
+	
+	
+	<!-- 삭제할 게시판의 자식 글의 개수를 리턴하는 -->
+	<!-- select 구문을 내포한 <select> 태그 선언 -->
+	<select id="getBoardChildrenCnt" parameterType="com.kh.erp.ad.notice.BoardDTO" resultType="int">
+	<!-- select 태그 안의 속성 -->
+	<!-- id = "namespace 값 마지막의 인터페이스 내부의 메소드명 중 하나" -->
+	<!-- parameterType = "SQL 구문에 참여하는 외부 데이터의 타입" -->
+	<!-- resultType = "SQL 구문의 결과 값을 저장할 수 있는 자바 자료형" -->
+	
+		select 
+			count(*) 
+		from 
+			ma_board 
+		where 
+			group_no=(select group_no from ma_board where b_no=${b_no}) 
+			and 
+			print_no=(select print_no + 1 from ma_board where b_no=${b_no}) 
+		
+	</select>
+	
+	
+	<!-- 게시판을 수정하는 -->
+	<!-- update 구문을 내포한 <update> 태그 선언 -->
+	<update id="updateBoardEmpty" parameterType="com.kh.erp.ad.notice.BoardDTO">
+	
+		update
+			ma_board
+		set 
+			subject = '삭제된 게시글입니다.'
+			, content = '삭제된 내용입니다.'
+		<!-- where -->
+		<!-- where 구문 -->
+		where
+			b_no=#{b_no}
+		
+	</update>
+	
+	<!-- 게시판을 수정하는 -->
+	<!-- update 구문을 내포한 <update> 태그 선언 -->
+	<update id="updatePrintNoDown" parameterType="com.kh.erp.ad.notice.BoardDTO">
+	
+		update
+			ma_board
+		set 
+			print_no = print_no - 1
+		<!-- where -->
+		<!-- where 구문 -->
+		where
+			group_no=(select group_no from ma_board where b_no=${b_no})
+			and
+			print_no>(select print_no from ma_board where b_no=${b_no})
+		
+	</update>
+	
+	<!-- 게시판을 삭제하는 -->
+	<!-- delete 구문을 내포한 <delete> 태그 선언 -->
+	<delete id="deleteBoard" parameterType="com.kh.erp.ad.notice.BoardDTO">
+	
+		delete
+		
+		from
+			ma_board
+		where 
+			b_no=#{b_no}
+		
+	</delete>
+	
+	<!-- 게시판을 수정하는 -->
+	<!-- update 구문을 내포한 <update> 태그 선언 -->
+	<update id="updatePrintNo" parameterType="com.kh.erp.ad.notice.BoardDTO">
+	
+		update
+			ma_board set print_no = print_no + 1 
+		where 
+			group_no=(select group_no from ma_board where b_no=${b_no}) 
+		and 
+			print_no>(select print_no from ma_board where b_no=${b_no})
+		
+	</update>
+	
+	
+	<!-- 게시판을 입력하는 -->
+	<!-- insert 구문을 내포한 <insert> 태그 선언 -->
+	<insert id="insertReplyBoard" parameterType="com.kh.erp.ad.notice.BoardDTO">
+	<!-- insert 태그 안의 속성 -->
+	<!-- id = "namespace 값 마지막의 인터페이스 내부의 메소드명 중 하나" -->
+	<!-- parameterType = "SQL 구문에 참여하는 외부 데이터의 타입" -->
+		<!-- 외부 데이터의 타입이 HashMap일 경우 "java.util.HashMap" 또는 "hashmap"을 사용한다. -->
+		<!-- SQL에 참여하는 외부 데이터가 없을 경우 생략 가능 -->
+	<!-- <주의> insert 태그 안에는 resultType 속성이 없다. -->
+	<!-- 리턴 값은 자동으로 입력된 행의 개수인 int형이 리턴된다. -->
+	
+		insert into ma_board(
+			b_no
+			, subject
+			, readcount
+			, content
+			, group_no
+			, print_no
+		)
+		values(
+			(select nvl(max(b_no), 0) + 1 from ma_board)
+			, 'ㄴ' || #{subject}
+			<!-- BoardDTO 객체의 subject 속성변수 안의 값 삽입 -->
+			<!-- #이 있을 경우 속성변수 안의 값이 문자면 ''를 붙여준다.-->
+			<!-- BoardDTO 객체의 writer 속성변수 안의 값 삽입하기. # 있으므로 속성변수 안의 값이 문자면 ' 를 앞뒤에 붙여준다.-->
+			<!-- #이 있을 경우 속성변수 안의 값이 문자면 ''를 붙여준다.-->
+			, 0
+			, #{content}
+			<!-- BoardDTO 객체의 content 속성변수 안의 값 삽입 -->
+			<!-- #이 있을 경우 속성변수 안의 값이 문자면 ''를 붙여준다.-->
+			, (select group_no from ma_board where b_no=#{b_no})
+			<!-- BoardDTO 객체의 email 속성변수 안의 값 삽입 -->
+			<!-- 답글쓰기를 클릭한 글의 b_no의 그룹 번호 -->
+			<!-- #이 있을 경우 속성변수 안의 값이 문자면 ''를 붙여준다.-->
+			, (select print_no + 1 from ma_board where b_no=#{b_no})
+			<!-- BoardDTO 객체의 email 속성변수 안의 값 삽입 -->
+			<!-- 답글쓰기를 클릭한 글의 b_no의 출력 번호 + 1 -->
+			<!-- #이 있을 경우 속성변수 안의 값이 문자면 ''를 붙여준다.-->
+		)
+	</insert>
+	
+	
+	<!-- 댓글 데이터 가져오기 -->
+	
+	<select id="getComment" parameterType="int" resultType="java.util.HashMap">
+
+		select
+				r.b_no									as "b_no"	
+		        , e.nm_emp								as "nm_emp"
+		        , r.content								as "content"
+		        , to_char(r.reg_date, 'YYYY-MM-DD')	 	as "reg_date"
+		        , r.print_level	 						as "print_level"
+		from 
+			ma_re_board r, ma_emp e
+		
+		where 
+			r.no_emp = e.no_emp and #{b_no} = r.b_no
+			
+		order by
+			reg_date asc
+		
+	</select>
+	
+	
+	
+	<!-- 댓글 데이터 입력하기  -->
+	
+	<insert id="insertComment" parameterType="com.kh.erp.ad.notice.BoardDTO">
+
+		insert into ma_re_board(
+			b_no
+			, no_emp
+			, content
+			, print_level
+		)
+		values(
+			#{b_no}
+			,#{no_emp}
+			,#{content_com}
+			,(select nvl(max(print_level), 0) + 1 from ma_re_board)
+		)
+		
+	</insert>
+	
+	
+	<!-- 댓글 -->
+	
+	 <!--  삭제하는 -->
+
+	<delete id="deleteComment" parameterType="com.kh.erp.ad.notice.BoardDTO">
+	
+		delete
+		
+		from
+			ma_re_board
+		where 
+			print_level=#{print_level} and b_no=#{b_no}
+		
+	</delete>
+
+	
+	<!--  수정하는 -->
+
+	<update id="updateCommentPrintNoDown" parameterType="com.kh.erp.ad.notice.BoardDTO">
+	
+		update
+			ma_re_board
+		set 
+			print_level = print_level + 1 
+		where 
+			b_no=#{b_no} and print_level=#{print_level} 
+		
+	</update>
+	
+	<!-- 수정할  존재 개수를 리턴하는 -->
+
+	<select id="getCommentCnt" parameterType="com.kh.erp.ad.notice.BoardDTO" resultType="int">
+	
+		select 
+			count(*) 
+			
+		from
+			ma_re_board
+			
+		where
+			#{print_level}=print_level and b_no=#{b_no}
+		
+	</select>
+		 
+			 
+	<!--  공지사항 게시글 삭제 시 b_no 가 같은 댓글을 모두 삭제하는 구문 -->
+	
+	<delete id="deleteComment1" parameterType="com.kh.erp.ad.notice.BoardDTO">
+	
+		delete
+		
+		from
+			ma_re_board
+			
+		where 
+			b_no=#{b_no}
+		
+		
+	</delete>
+	
+
+
+</mapper>

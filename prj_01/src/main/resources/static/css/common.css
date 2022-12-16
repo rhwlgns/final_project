@@ -1,0 +1,29 @@
+@charset "UTF-8";
+
+/* body 태그, form 태그, td 태그, th 태그 , pre 태그 관련 설정. */
+body,form,td,th,pre { 
+	font-size : 10pt;
+	color : black;
+	line-height : 160%;
+	font-family : 굴림,tahoma,돋움,verdana;
+}
+
+/* input 태그, select 태그 설정. */
+input,select { 
+	font-size : 10pt;
+	color : black;
+	font-family : 굴림,tahoma,돋움,verdana;
+	height : 20px;
+}
+
+/* textarea 태그 설정. */
+textarea{ 
+	font-size : 10pt;
+	color : black;
+	font-family : 굴림,tahoma,돋움,verdana;
+}
+
+/* a 태그 설정. */
+a:link {text-decoration : none; color : #696969}
+a:hover{text-decoration : none; color : #66ccff}
+a:visited {text-decoration : none; color : #330066}
